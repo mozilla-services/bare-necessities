@@ -1,7 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
+with open("requirements/defaults.txt") as f:
+    requirements = f.read().splitlines()
 
 setup(
     name="bare-necessities",
@@ -13,7 +15,7 @@ setup(
     packages=find_packages("api"),
     include_package_data=True,
     package_data={"": [""]},
-    install_requires=["Flask==1.1.2", "gunicorn==20.0.4"],
+    install_requires=requirements,
     zip_safe=False,
     classifiers=[
         "Environment :: Web Environment",
