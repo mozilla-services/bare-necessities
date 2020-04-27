@@ -1,0 +1,142 @@
+# These environment variables must be set in CircleCI UI
+#
+# DOCKERHUB_REPO - docker hub repo, format: <username>/<repo>
+# DOCKER_USER
+# DOCKER_PASS
+#
+version: 2.1
+jobs:
+  check-format:
+    docker:
+      - image: circleci/python:buster
+    steps:
+      - checkout
+      - run:
+          name: install python deps
+          command: |
+            pip config --user set global.progress_bar off
+            pip install --user "$(grep black requirements/dev.txt)"
+      - run:
+          name: check code is formatted with black and output diff
+          command: |
+            black --config pyproject.toml --diff .
+            black --config pyproject.toml --check .
+
+  check-types:
+    docker:
+      - image: circleci/python:buster
+    steps:
+      - checkout
+      - run:
+          name: install python deps
+          command: |
+            pip config --user set global.progress_bar off
+            # unquoted grep so we install mypy and mypy extensions
+            pip install --user $(grep mypy requirements/dev.txt)
+      - run:
+          name: check code is properly typed
+          command: mypy --config setup.cfg
+
+  unit-test:
+    docker:
+      - image: circleci/python:buster
+    steps:
+      - checkout
+      - run:
+          name: install python deps
+          command: |
+            pip config --user set global.progress_bar off
+            pip install --user -r requirements/dev.txt -r requirements/defaults.txt
+      - run:
+          name: run unit tests
+          command: PYTHONPATH=$PYTHONPATH:./src pytest
+
+  build-images:
+    docker:
+      - image: circleci/python:buster
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Create a version.json
+          command: |
+            # create a version.json per https://github.com/mozilla-services/Dockerflow/blob/master/docs/version_object.md
+            printf '{"commit":"%s","version":"%s","source":"https://github.com/%s/%s","build":"%s"}\n' \
+            "$CIRCLE_SHA1" \
+            "$CIRCLE_TAG" \
+            "$CIRCLE_PROJECT_USERNAME" \
+            "$CIRCLE_PROJECT_REPONAME" \
+            "$CIRCLE_BUILD_URL" > src/web/version.json
+      - run:
+          name: docker-compose build
+          command: docker-compose build
+      - run:
+          name: save built image to cache
+          command: docker save "${DOCKERHUB_REPO}:latest" | gzip -c > /tmp/docker.tgz
+      - save_cache:
+          key: v1-{{ .Branch }}-{{ epoch }}
+          paths:
+            - /tmp/docker.tgz
+
+  upload-docker-images:
+    docker:
+      - image: circleci/python:buster
+    steps:
+      - checkout
+      - setup_remote_docker
+      - restore_cache:
+          key: v1-{{.Branch}}
+      - run:
+          name: Restore Docker image cache
+          command: gunzip -c /tmp/docker.tgz | docker load
+      - run:
+          name: upload to Dockerhub
+          command: |
+            # deploy master
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              docker-compose push api
+            elif  [ ! -z "${CIRCLE_TAG}" ]; then
+              # deploy a release tag
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              echo "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+              docker tag "${DOCKERHUB_REPO}:latest" "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+              docker push "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+            fi
+
+workflows:
+  version: 2
+  check-readme-local-dev:
+    jobs:
+      - check-format:
+        filters:
+          tags:
+            only: /.*/
+
+      - check-types:
+        filters:
+          tags:
+            only: /.*/
+
+      - unit-test:
+        filters:
+          tags:
+            only: /.*/
+
+      - build-images:
+          filters:
+            tags:
+              only: /.*/
+
+      - upload-docker-images:
+          requires:
+            - check-format
+            - check-types
+            - unit-test
+            - build-images
+          filters:
+            tags:
+              # only upload the docker container on semver tags
+              only: /[0-9]\.[0-9]+\.[0-9]+/
+            branches:
+              only: master

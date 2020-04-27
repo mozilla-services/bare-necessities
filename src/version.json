@@ -1,0 +1,6 @@
+{
+    "commit": "",
+    "version": "0.0.1",
+    "source": "https://github.com/mozilla-services/bare-necessities",
+    "build": "https://circleci.com/gh/mozilla-services/bare-necessities"
+}
