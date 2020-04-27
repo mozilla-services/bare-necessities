@@ -1,0 +1,34 @@
+version: "3"
+services:
+  db:
+    container_name: bare-necessities-db
+    image: postgres:12
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=bare-necessities
+    ports:
+      - "5432:5432"
+
+  web:
+    container_name: bare-necessities
+    build:
+        context: .
+    image: mozilla/bare-necessities
+    volumes:
+      - ./:/app
+    environment:
+      - CELERY_BROKER_URL=sqla+postgresql://postgres:postgres@db/dependency_observatory
+      - CELERY_RESULT_BACKEND=db+postgresql://postgres:postgres@db/dependency_observatory
+      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:postgres@db/dependency_observatory
+      - INIT_DB=1
+      - FLASK_APP=/app/depobs/website/do.py
+      - FLASK_ENV=development
+      - HOST=0.0.0.0
+      - PORT=8000
+    depends_on:
+      - db
+    links:
+      - db
+    ports:
+      - "8000:8000"
