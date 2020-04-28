@@ -2,3 +2,4 @@ black==19.10b0
 pylint==2.4.4
 mypy==0.770
 pytest==5.4.1
+coverage==5.1

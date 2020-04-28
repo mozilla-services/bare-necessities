@@ -1,6 +1,1 @@
-{
-    "commit": "",
-    "version": "0.0.1",
-    "source": "https://github.com/mozilla-services/bare-necessities",
-    "build": "https://circleci.com/gh/mozilla-services/bare-necessities"
-}
+{"name":"bare-necessities","version":"c5b00d3","source":"https://github.com/mozilla-services/bare-necessities.git","commit":"c5b00d31b3aa34af53a3ed578faa1c78168f9115"}

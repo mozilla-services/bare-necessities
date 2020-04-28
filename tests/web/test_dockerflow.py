@@ -25,14 +25,14 @@ def test_request_summary(caplog, client):
     assert getattr(g, "_request_id") is not None
     assert isinstance(getattr(g, "_start_timestamp"), float)
 
-    assert len(caplog.records) == 1
     for record in caplog.records:
-        assert record.levelno == logging.INFO
-        assert record.errno == 0
-        assert record.agent == "dockerflow/tests"
-        assert record.lang == "tlh"
-        assert record.method == "GET"
-        assert record.path == "/"
-        assert record.rid == g._request_id
-        assert isinstance(record.t, int)
-        assert getattr(request, "uid", None) is None
+        if hasattr(record, "method"):
+            assert record.levelno == logging.INFO
+            assert record.errno == 0
+            assert record.agent == "dockerflow/tests"
+            assert record.lang == "tlh"
+            assert record.method == "GET"
+            assert record.path == "/"
+            assert record.rid == g._request_id
+            assert isinstance(record.t, int)
+            assert getattr(request, "uid", None) is None

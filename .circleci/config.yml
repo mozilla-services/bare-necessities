@@ -12,15 +12,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install python deps
-          command: |
-            pip config --user set global.progress_bar off
-            pip install --user "$(grep black requirements/dev.txt)"
-      - run:
           name: check code is formatted with black and output diff
-          command: |
-            black --config pyproject.toml --diff .
-            black --config pyproject.toml --check .
+          command: make check-format
 
   check-types:
     docker:
@@ -28,14 +21,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install python deps
-          command: |
-            pip config --user set global.progress_bar off
-            # unquoted grep so we install mypy and mypy extensions
-            pip install --user $(grep mypy requirements/dev.txt)
-      - run:
           name: check code is properly typed
-          command: mypy --config setup.cfg
+          command: make check-types
 
   unit-test:
     docker:
@@ -43,13 +30,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install python deps
-          command: |
-            pip config --user set global.progress_bar off
-            pip install --user -r requirements/dev.txt -r requirements/defaults.txt
-      - run:
           name: run unit tests
-          command: PYTHONPATH=$PYTHONPATH:./src pytest
+          command: make test
 
   build-images:
     docker:
