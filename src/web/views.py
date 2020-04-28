@@ -12,7 +12,7 @@ def hello():
     return "Hello World!"
 
 
-@app.route("/<name>", methods=["GET"])
+@app.route("/<input_name>", methods=["GET"])
 def hello_name(input_name):
-    log.info(f"{input_name} said hello", extra={"input_name": name})
-    return f"Hello {name}"
+    log.info(f"{input_name} said hello", extra={"input_name": input_name})
+    return f"Hello {input_name}"
