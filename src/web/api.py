@@ -28,7 +28,7 @@ def create_app(test_config=None):
     app.config.from_object("src.config")
 
     logging.config.dictConfig(app.config["LOGGING"])
-    log = logging.getLogger(__name__)
+    log = logging.getLogger("web.api")
     log.info("starting web api")
 
     dockerflow = Customflow(app)

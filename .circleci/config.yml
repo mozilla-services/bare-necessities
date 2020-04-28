@@ -95,7 +95,7 @@ jobs:
             # deploy master
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               docker login -u $DOCKER_USER -p $DOCKER_PASS
-              docker-compose push api
+              docker-compose push web
             elif  [ ! -z "${CIRCLE_TAG}" ]; then
               # deploy a release tag
               docker login -u $DOCKER_USER -p $DOCKER_PASS
