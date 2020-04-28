@@ -86,9 +86,12 @@ jobs:
               docker push "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
             fi
 
+orbs:
+  heroku: circleci/heroku@1.0.1
+
 workflows:
   version: 2
-  check-readme-local-dev:
+  test-build-ship:
     jobs:
       - check-format:
         filters:
@@ -120,5 +123,14 @@ workflows:
             tags:
               # only upload the docker container on semver tags
               only: /[0-9]\.[0-9]+\.[0-9]+/
+            branches:
+              only: master
+
+      - heroku/deploy-via-git:
+          requires:
+            - check-format
+            - check-types
+            - unit-test
+          filters:
             branches:
               only: master
