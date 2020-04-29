@@ -1,4 +1,4 @@
-version: "3"
+version: "3" 
 services:
   db:
     container_name: bare-necessities-db
@@ -6,23 +6,20 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=bare-necessities
+      - POSTGRES_DB=bare_necessities
     ports:
       - "5432:5432"
 
   web:
-    container_name: bare-necessities
+    container_name: bare-necessities-web
     build:
         context: .
     image: mozilla/bare-necessities
     volumes:
       - ./:/app
     environment:
-      - CELERY_BROKER_URL=sqla+postgresql://postgres:postgres@db/dependency_observatory
-      - CELERY_RESULT_BACKEND=db+postgresql://postgres:postgres@db/dependency_observatory
-      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:postgres@db/dependency_observatory
-      - INIT_DB=1
-      - FLASK_APP=/app/depobs/website/do.py
+      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:postgres@db/bare_necessities
+      - FLASK_APP=/app/src/web/api.py
       - FLASK_ENV=development
       - HOST=0.0.0.0
       - PORT=8000
@@ -32,3 +29,26 @@ services:
       - db
     ports:
       - "8000:8000"
+
+  db-migration:
+    container_name: bare-necessities-db-migration
+    build:
+        context: .
+    image: mozilla/bare-necessities
+    volumes:
+      - ./:/app
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:postgres@db/bare_necessities
+      - FLASK_APP=/app/src/web/api.py
+      - FLASK_ENV=development
+    depends_on:
+      - db
+    links:
+      - db
+    command:
+      [
+        "/opt/wait-for-it.sh",
+        "db:5432",
+        "--",
+        "flask", "db", "upgrade",
+      ]

@@ -18,6 +18,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
             apt-transport-https \
             ca-certificates \
             build-essential \
+            curl \
             libpq-dev
 
 WORKDIR /app
@@ -25,6 +26,10 @@ WORKDIR /app
 COPY . /app/
 RUN pip install --upgrade --no-cache-dir -r requirements/defaults.txt
 
+RUN curl -o /opt/wait-for-it.sh https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh && \
+      chmod +x /opt/wait-for-it.sh
+
 USER app
+
 ENTRYPOINT [ ]
 CMD ["gunicorn", "--chdir", "src", "src.web.wsgi:app"]

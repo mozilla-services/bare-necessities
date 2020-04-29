@@ -33,3 +33,8 @@ LOGGING = {
         "request.summary": {"handlers": ["console"], "level": "INFO"},
     },
 }
+
+SQLALCHEMY_DATABASE_URI = config("SQLALCHEMY_DATABASE_URI", default="", cast=str)
+SQLALCHEMY_TRACK_MODIFICATIONS = config(
+    "SQLALCHEMY_TRACK_MODIFICATIONS", default=False, cast=bool
+)
