@@ -84,6 +84,30 @@ In order to upload containers, you'll need to ask cloudops to create the dockerh
 
 The postgres database is managed by the application through SQLAlchemy. The tables are defined under `src/db/models` as classes that inherit the `db.Model` class.
 
+### sqlite
+
+For local development and testing, it is possible to use sqlite instead of postgresql.
+
+To create a sqlite local database under `/tmp/bare_necessities.sqlite`, use the following command:
+
+```
+$ SQLALCHEMY_DATABASE_URI=sqlite:////tmp/bare_necessities.sqlite \
+  PYTHONPATH=. \
+  FLASK_APP=src/web/api.py \
+  flask db upgrade
+```
+
+You can then start the web api using this command:
+
+```
+$ SQLALCHEMY_DATABASE_URI=sqlite:////tmp/bare_necessities.sqlite \
+  PYTHONPATH=. \
+  FLASK_APP=src/web/api.py \
+  gunicorn --chdir src --reload src.web.wsgi:app
+```
+
+The api will be listening on `127.0.0.1:8000`.
+
 ### database migrations
 
 The database schema is entirely managed by flask via the alembic package. Changes to running databases are applied as migration that can be upgraded and downgraded as needed.
