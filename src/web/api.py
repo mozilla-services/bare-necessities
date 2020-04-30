@@ -1,11 +1,13 @@
 import os
 from flask import Flask, request
-from src import config
+from flask_migrate import Migrate
 import logging
 import logging.config
-
 from dockerflow.flask import Dockerflow
 from dockerflow.logging import JsonLogFormatter
+from src.web.views import views_blueprint
+import src.db.models as models
+from src import config
 
 # silence flask request logging
 flasklog = logging.getLogger("werkzeug")
@@ -22,8 +24,6 @@ class Customflow(Dockerflow):
 
 
 def create_app(test_config=None):
-    from src.web.views import views_blueprint
-
     app = Flask(__name__)
     app.config.from_object("src.config")
 
@@ -31,7 +31,11 @@ def create_app(test_config=None):
     log = logging.getLogger("web.api")
     log.info("starting web api")
 
-    dockerflow = Customflow(app)
+    log.info(f"connecting to database")
+    models.db.init_app(app)
+    migrate = Migrate(app, models.db)
+
+    dockerflow = Customflow(app, db=models.db, migrate=migrate)
     dockerflow.init_app(app)
 
     app.register_blueprint(views_blueprint)

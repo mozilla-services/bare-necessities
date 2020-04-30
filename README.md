@@ -20,7 +20,7 @@ Uses [Flask](https://flask.palletsprojects.com/en/1.1.x/) for the web side.
 
 ## Development
 
-Setup a virtualenv with
+For local development, setup a virtualenv with
 ```bash
 $ virtualenv env
 $ source env/bin/activate
@@ -28,6 +28,8 @@ $ pip install -r requirements/defaults.txt -r requirements/dev.txt
 ```
 
 You can then run the development server using `gunicorn --reload --chdir src src.web.wsgi:app`
+
+If you want a full stack, with database, workers and so on, use `docker-compose up --build`.
 
 ## Heroku
 
@@ -40,6 +42,8 @@ heroku login
 heroku create $(whoami)-barenecessities-$(date +%s)
 git push heroku master
 ```
+
+Deployment to heroku is also automated from circleci using a dedicated service account and a non-expiring API key. The documentation on how to get one of these [is on mana](https://mana.mozilla.org/wiki/display/TS/Obtaining+non-expiring+API+keys).
 
 ## How does it work?
 
@@ -77,3 +81,103 @@ The `Dockerfile` at the root of the repository is used to package the applicatio
 Here, `build.context: .` means the `Dockerfile` is located in the same folder as the `docker-compose.yml` file. In the circleci configuration at `.circleci/config.yml`, the task `build-images` will then create the docker images by calling `docker-compose build`.
 
 In order to upload containers, you'll need to ask cloudops to create the dockerhub repository for you. They'll give you back credentials to put in the DOCKERHUB_REPO, DOCKER_USER and DOCKER_PASS environment variables of circleci. Then, the circleci task `upload-docker-images` takes care of publishing images to dockerhub.
+
+## Database
+
+The postgres database is managed by the application through SQLAlchemy. The tables are defined under `src/db/models` as classes that inherit the `db.Model` class.
+
+### sqlite
+
+For local development and testing, it is possible to use sqlite instead of postgresql.
+
+To create a sqlite local database under `/tmp/bare_necessities.sqlite`, use the following command:
+
+```
+$ SQLALCHEMY_DATABASE_URI=sqlite:////tmp/bare_necessities.sqlite \
+  PYTHONPATH=. \
+  FLASK_APP=src/web/api.py \
+  flask db upgrade
+```
+
+You can then start the web api using this command:
+
+```
+$ SQLALCHEMY_DATABASE_URI=sqlite:////tmp/bare_necessities.sqlite \
+  PYTHONPATH=. \
+  FLASK_APP=src/web/api.py \
+  gunicorn --chdir src --reload src.web.wsgi:app
+```
+
+The api will be listening on `127.0.0.1:8000`.
+
+### database migrations
+
+The database schema is entirely managed by flask via the alembic package. Changes to running databases are applied as migration that can be upgraded and downgraded as needed.
+
+*Note: this section is convoluted due to the way docker-compose work. Ideally, these commands would run in the `web` container, but because its volume is read-only, flask can't write migration files. Therefore, we run the flask commands locally by pointing at the running `db` container.*
+
+First, spin up a stack in docker-compose. The database instance will be instanciated without any table.
+
+```
+$ docker-compose up --build
+```
+
+Then, retrieve the IP address of the `db` container.
+
+```
+$ export DBIP=$(docker inspect bare-necessities-db| jq -r '.[].NetworkSettings.Networks.barenecessities_default.IPAddress')
+```
+
+Run the `flask db init` command against the `db` container. This will create a local folder named `migrations` with all the boilerplate needed to handle schema migrations.
+
+```
+$ SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:postgres@${DBIP}:5432/bare_necessities \
+  PYTHONPATH=. \
+  FLASK_APP=src/web/api.py \
+  flask db init
+```
+
+Run the `flask db migrate` command to create the initial schema version. This will create a file under `migrations/versions` with the initial schema of the database.
+
+```
+$ SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:postgres@${DBIP}:5432/bare_necessities \
+  PYTHONPATH=. \
+  FLASK_APP=src/web/api.py \
+  flask db migrate -m "Initial migration."
+```
+
+Finally, to apply this schema to the database and create the tables, run the `flask db upgrade` command.
+
+```
+$ SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:postgres@${DBIP}:5432/bare_necessities \
+  PYTHONPATH=. \
+  FLASK_APP=src/web/api.py \
+  flask db upgrade
+```
+
+We can verify that the tables have been created in the database. The `alembic_version` table contains the version number that maps to the schema version currently applied. You will find a corresponding migration version file under `migrations/versions`.
+
+```
+$ psql -U postgres -h ${DBIP} bare_necessities
+
+bare_necessities=# \d+
+                             List of relations
+ Schema |      Name       |   Type   |  Owner   |    Size    | Description 
+--------+-----------------+----------+----------+------------+-------------
+ public | alembic_version | table    | postgres | 8192 bytes | 
+ public | user            | table    | postgres | 8192 bytes | 
+ public | user_id_seq     | sequence | postgres | 8192 bytes | 
+(3 rows)
+
+bare_necessities=# select * from alembic_version;
+ version_num  
+--------------
+ ddb81cb8c19f
+(1 row)
+```
+
+## Testing
+
+Pytest is used for unit testing. All tests are kept under the `tests` directory and can be invoked by calling `make test`.
+
+An in-memory sqlite database is instantiated using SQLAlchemy every time pytest runs. The database is not preserved between runs.

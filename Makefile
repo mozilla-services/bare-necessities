@@ -23,7 +23,7 @@ $(INSTALL_STAMP): $(PYTHON) requirements/dev.txt requirements/defaults.txt
 	touch $(INSTALL_STAMP)
 
 test: $(INSTALL_STAMP) $(VERSION_FILE)
-	PYTHONPATH=. $(VENV)/bin/pytest
+	SQLALCHEMY_DATABASE_URI=sqlite:///:memory: PYTHONPATH=. $(VENV)/bin/pytest
 
 check-types: $(INSTALL_STAMP)
 	$(VENV)/bin/mypy --config setup.cfg
