@@ -80,7 +80,7 @@ Here, `build.context: .` means the `Dockerfile` is located in the same folder as
 
 In order to upload containers, you'll need to ask cloudops to create the dockerhub repository for you. They'll give you back credentials to put in the DOCKERHUB_REPO, DOCKER_USER and DOCKER_PASS environment variables of circleci. Then, the circleci task `upload-docker-images` takes care of publishing images to dockerhub.
 
-## database
+## Database
 
 The postgres database is managed by the application through SQLAlchemy. The tables are defined under `src/db/models` as classes that inherit the `db.Model` class.
 
@@ -173,3 +173,9 @@ bare_necessities=# select * from alembic_version;
  ddb81cb8c19f
 (1 row)
 ```
+
+## Testing
+
+Pytest is used for unit testing. All tests are kept under the `tests` directory and can be invoked by calling `make test`.
+
+An in-memory sqlite database is instantiated using SQLAlchemy every time pytest runs. The database is not preserved between runs.

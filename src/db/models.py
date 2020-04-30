@@ -19,5 +19,14 @@ class User(db.Model):
 
 
 def get_user_details(user_name: str) -> Dict[str, str]:
-    user_details = db.session.query(User.name, User.email,).filter_by(name=user_name)
-    return dict(user_details)
+    details = db.session.query(User.name, User.email).filter_by(name=user_name).first()
+    return dict(name=details.name, email=details.email)
+
+
+def post_user_details(user_details: dict) -> Dict[str, str]:
+    user = User()
+    user.name = user_details["name"]
+    user.email = user_details["email"]
+    db.session.add(user)
+    db.session.commit()
+    return dict(name=user.name, email=user.email)
