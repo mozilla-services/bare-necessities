@@ -1,3 +1,5 @@
+<img align="right" width="300" src="https://freesvg.org/img/standing-bear.png">
+
 *Look for the bare necessities  
 The simple bare necessities  
 Forget about your worries and your strife  
