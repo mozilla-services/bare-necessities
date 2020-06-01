@@ -1,4 +1,5 @@
 from src.db import models
+import src.tasks.tasks as tasks
 from flask import Blueprint, request
 import logging
 from typing import Tuple, Dict
@@ -12,6 +13,12 @@ views_blueprint = app = Blueprint("views_blueprint", __name__)
 def hello() -> Tuple[str, int]:
     log.info("someone said hello")
     return "Hello World!", 200
+
+@app.route("/hello_task", methods=["GET"])
+def regression() -> Tuple[str, int]:
+    task_id = tasks.hello.delay()
+    log.info("started a hello task")
+    return f"hello task started with id {task_id}", 200
 
 
 @app.route("/<input_name>", methods=["GET"])
