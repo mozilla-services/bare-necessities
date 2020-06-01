@@ -18,6 +18,7 @@ services:
     volumes:
       - ./:/app
     environment:
+      - CELERY_BROKER_URL=sqla+postgresql+psycopg2://postgres:postgres@db/bare_necessities
       - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:postgres@db/bare_necessities
       - FLASK_APP=/app/src/web/api.py
       - FLASK_ENV=development
@@ -29,6 +30,25 @@ services:
       - db
     ports:
       - "8000:8000"
+
+  worker:
+    container_name: bare-necessities-worker
+    build:
+        context: .
+    image: mozilla/bare-necessities
+    volumes:
+      - ./:/app
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:postgres@db/bare_necessities
+      - CELERY_BROKER_URL=sqla+postgresql+psycopg2://postgres:postgres@db/bare_necessities
+    depends_on:
+      - db
+    links:
+      - db
+    command:
+      [
+         "celery", "worker", "--app=src.tasks.tasks"
+      ]
 
   db-migration:
     container_name: bare-necessities-db-migration
